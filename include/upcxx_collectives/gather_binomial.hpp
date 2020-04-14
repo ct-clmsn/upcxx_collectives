@@ -115,7 +115,12 @@ public:
             }
 
             mask <<= 1;
-            upcxx::barrier(); // make sure communications terminate properly
+
+            // make sure all outstanding communications terminate properly
+            // if there is not barrier, then the loop will continue and
+            // potentially deadlock on a PE
+            //
+            upcxx::barrier();
         }
 
         if(rank_me < 1) {
