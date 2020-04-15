@@ -14,6 +14,8 @@
 #include "gather_binary.hpp"
 #include "gather_binomial.hpp"
 #include "reduce.hpp"
+#include "reduce_binary.hpp"
+#include "reduce_binomial.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 
@@ -62,8 +64,11 @@ using blocking_binary_gather = upcxx::utils::collectives::iterable_collective<up
 using nonblocking_binomial_gather = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::gather<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::nonblocking>>;
 using blocking_binomial_gather = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::gather<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::blocking>>;
 
-using nonblocking_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::nonblocking>>;
-using blocking_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::blocking>>;
+using nonblocking_binary_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::nonblocking>>;
+using blocking_binary_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::blocking>>;
+
+using nonblocking_binomial_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::nonblocking>>;
+using blocking_binomial_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::blocking>>;
 
 } /* end namespace collectives */ } /* end namespace utils */ } /* end namespace upcxx */
 
