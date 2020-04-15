@@ -25,4 +25,6 @@ public:
 
 } /* end namespace collectives */ } /* end namespace utils */ } /* end namespace upcxx */
 
+// https://github.com/pmodels/mpich/blob/master/src/mpi/coll/reduce/reduce_intra_binomial.c
+
 #endif
