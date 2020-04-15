@@ -117,11 +117,12 @@ public:
                     upcxx::progress();
                 }
 
-                {
-                    std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                    boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
-                    iarch_odd >> output;
-                }
+                value_type_t val{};
+                std::stringstream value_buffer_odd{ std::get<2>(*args) };
+                boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+
+                iarch_odd >> val;
+                output = val;
             }
         }
         else {
@@ -202,7 +203,7 @@ public:
 
                     {
                         std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                        boost::archive::binary_iarchive iarch_odd{value_buffer};
+                        boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
                         iarch_odd >> odd;
                     }
 

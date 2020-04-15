@@ -46,9 +46,19 @@ public:
         op(input_beg, input_end, output_beg);
     }
 
+    template<typename InputIterator, typename BinaryOp>
+    void operator()(InputIterator input_beg, InputIterator input_end, typename std::iterator_traits<InputIterator>::value_type init, BinaryOp op, typename std::iterator_traits<InputIterator>::value_type & output) {
+        Operation opr{};
+        opr(input_beg, input_end, init, op, output);
+    }
+
+/*
     template<class ExecutionPolicy, typename InputIterator, typename BinaryOp>
     void operator()(ExecutionPolicy && policy, InputIterator input_beg, InputIterator input_end, typename std::iterator_traits<InputIterator>::value_type init, BinaryOp op, typename std::iterator_traits<InputIterator>::value_type & output) {
+        Operation opr{};
+        opr(input_beg, input_end, init, op, output);
     }
+*/
 
 };
 
