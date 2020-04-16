@@ -7,9 +7,9 @@
 
 Project details [here](http://www.github.com/ct-clmsn/upcxx_collectives/).
 
-This project implements collective operations for UPC++ using a single-sided
-communications and a binary tree representaton of each PE. The project is
-'header-only' and requires compilation and linking of a binary library.
+This project implements collective operations for UPC++ using single-sided
+communications. The project is 'header-only' and requires compilation and
+linking of a binary library.
 
 The implementations specifically target log2 nodes and data set sizes. Any C++
 container type providing iterator support can be used with this library. Data
@@ -23,6 +23,12 @@ is the 'root' process for communication.
 * Gather
 * Reduce
 * All2All
+
+### Communication Patterns
+
+* binomial tree
+* binary tree
+* hypercube
 
 ### Dependencies
 

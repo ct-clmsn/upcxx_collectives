@@ -40,19 +40,22 @@ class gather<tree_binary, BlockingPolicy> {
 private:
     std::int64_t root;
     std::int64_t cas_count;
+    std::int64_t rel_rank;
     upcxx::dist_object< std::tuple< std::int32_t, std::int32_t, std::vector<std::string>, std::vector<std::string> > > args;
 
 public:
     using communication_pattern = upcxx::utils::collectives::tree_binary;
     using blocking_policy = BlockingPolicy;
 
-    gather(const std::int64_t root_=upcxx::rank_me()) :
+    gather(const std::int64_t root_=0) :
         root(root_),
         cas_count(0),
+        rel_rank(0),
         args{std::make_tuple(0, 0, std::vector<std::string>{}, std::vector<std::string>{})} {
 
-        const std::int64_t left = (2*upcxx::rank_me()) + 1;
-        const std::int64_t right = (2*upcxx::rank_me()) + 2;
+        rel_rank = ((upcxx::rank_me()-root_) + upcxx::rank_n()) % upcxx::rank_n();
+        const std::int64_t left = (2*rel_rank) + 1;
+        const std::int64_t right = (2*rel_rank) + 2;
         cas_count = ( left < upcxx::rank_n() ) + ( right < upcxx::rank_n() );
     }
 
@@ -75,7 +78,7 @@ public:
             );
 
         std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = upcxx::rank_me();
+        const std::int64_t rank_me = rel_rank;
 
         // i.am.root.
         if(rank_me == 0) {

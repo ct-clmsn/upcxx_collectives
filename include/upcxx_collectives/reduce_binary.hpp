@@ -109,6 +109,7 @@ public:
                     recv_vec.push_back(std::move(even));
                 }
 
+                recv_vec.push_back(std::reduce(input_beg, input_end, init, op));
                 output = std::reduce(recv_vec.begin(), recv_vec.end(), init, op); 
             }
             else {

@@ -75,12 +75,7 @@ public:
         const std::int64_t rank_n = upcxx::rank_n();
         const std::int64_t rank_me = upcxx::rank_me();
 
-        value_type_t local_result{};
-
-        // cache local data set into transmission buffer
-        if(rank_me > 0) {
-            local_result = std::reduce(input_beg, input_end, init, op);
-        }
+        value_type_t local_result{std::reduce(input_beg, input_end, init, op)};
 
         for(std::int64_t i = 0; i < logp; ++i) {
             if((mask & rank_me) == 0) {

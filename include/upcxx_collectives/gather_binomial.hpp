@@ -46,7 +46,7 @@ public:
     using communication_pattern = upcxx::utils::collectives::tree_binomial;
     using blocking_policy = BlockingPolicy;
 
-    gather(const std::int64_t root_=upcxx::rank_me()) :
+    gather(const std::int64_t root_=0) :
         root(root_),
         mask(0x1),
         args{std::make_tuple(0, std::vector<std::string>{})} {
@@ -71,10 +71,10 @@ public:
             );
 
         const std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = upcxx::rank_me();
+        const std::int64_t rank_me = ((upcxx::rank_me() - root) + rank_n) % rank_n;
 
         // cache local data set into transmission buffer
-        if(rank_me > 0) {
+        if(rank_me != root) {
             std::stringstream value_buffer{};
             boost::archive::binary_oarchive value_oa{value_buffer};
             const std::int64_t iter_diff = (input_end-input_beg);
@@ -93,7 +93,6 @@ public:
                     // recv this atomic flips back and forth
                     //
                     upcxx::progress();
-//std::cout << i << "\trecv\t" << rank_me << ' ' << (rank_me | mask) << std::endl;
                     while(!atomic_xchange( &std::get<0>(*args), 1, 0 )) {
                         upcxx::progress();
                     }
@@ -102,7 +101,7 @@ public:
             else {
                 // leaf-parent exchange send
                 //
-                const std::int64_t parent = (rank_me & (~mask)); // % rank_n;
+                const std::int64_t parent = ((rank_me & (~mask)) + root) % rank_n;
 
                 upcxx::rpc_ff(
                     parent,
