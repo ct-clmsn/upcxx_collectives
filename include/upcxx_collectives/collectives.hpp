@@ -10,6 +10,7 @@
 #include "collective_traits.hpp"
 #include "broadcast.hpp"
 #include "broadcast_binomial.hpp"
+#include "broadcast_binary.hpp"
 #include "scatter.hpp"
 #include "gather.hpp"
 #include "gather_binary.hpp"
@@ -76,6 +77,11 @@ public:
 using nonblocking_binomial_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::nonblocking>>;
 using blocking_binomial_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::blocking>>;
 
+using nonblocking_binary_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::nonblocking>>;
+using blocking_binary_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::blocking>>;
+
+// scatter
+//
 using nonblocking_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::nonblocking>>;
 using blocking_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::blocking>>;
 

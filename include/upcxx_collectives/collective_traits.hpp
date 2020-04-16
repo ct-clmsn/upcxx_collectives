@@ -41,6 +41,36 @@ template<>
 struct is_tree_binary<tree_binomial> : public std::true_type {
 };
 
+struct topology_ring {};
+struct topology_mesh {};
+struct topology_hypercube {};
+
+template<typename CommunicationPattern>
+struct is_topology_ring : public std::false_type {
+};
+
+template<>
+struct is_topology_ring<topology_ring> : public std::true_type {
+};
+
+template<typename CommunicationPattern>
+struct is_topology_mesh : public std::false_type {
+};
+
+template<>
+struct is_topology_mesh<topology_mesh> : public std::true_type {
+};
+
+template<typename CommunicationPattern>
+struct is_topology_hypercube : public std::false_type {
+};
+
+template<>
+struct is_topology_hypercube<topology_hypercube> : public std::true_type {
+};
+
+
+
 } /* end namespace collectives */ } /* end namespace utils */ } /* end namespace upcxx */
 
 #endif
