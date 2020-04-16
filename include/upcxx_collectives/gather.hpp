@@ -17,7 +17,7 @@ public:
     using communication_pattern = CommunicationPattern;
     using blocking_policy = BlockingPolicy;
 
-    gather(const std::int64_t root_);
+    gather(const std::int64_t root_=0);
 
     template<typename InputIterator, typename OutputIterator>
     void operator()(InputIterator input_beg, InputIterator input_end, OutputIterator out_beg);

@@ -35,7 +35,7 @@ namespace upcxx { namespace utils { namespace collectives {
 #endif
 
 template< typename BlockingPolicy >
-class gather<tree_binomial, BlockingPolicy> {
+class gather< tree_binomial, BlockingPolicy > {
 
 private:
     std::int64_t root;

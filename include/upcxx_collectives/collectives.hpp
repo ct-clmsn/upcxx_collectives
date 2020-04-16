@@ -9,6 +9,7 @@
 
 #include "collective_traits.hpp"
 #include "broadcast.hpp"
+#include "broadcast_binomial.hpp"
 #include "scatter.hpp"
 #include "gather.hpp"
 #include "gather_binary.hpp"
@@ -22,13 +23,17 @@ namespace upcxx { namespace utils { namespace collectives {
 template<typename Operation>
 class scalar_collective {
 
+private:
+    const std::int64_t root;
+
 public:
-    scalar_collective() {
+    scalar_collective(const std::int64_t root_=0) :
+        root(root_) {
     }
 
     template<typename DataType>
     void operator()(DataType & data) {
-        Operation op{};
+        Operation op{root};
         op(data);
     }
 };
@@ -36,13 +41,17 @@ public:
 template<typename Operation>
 class iterable_collective {
 
+private:
+    const std::int64_t root;
+
 public:
-    iterable_collective() {
+    iterable_collective(const std::int64_t root_=0) :
+        root(root_) {
     }
 
     template<typename InputIter, typename OutputIter>
     void operator()(InputIter input_beg, InputIter input_end, OutputIter output_beg) {
-        Operation op{};
+        Operation op{root};
         op(input_beg, input_end, output_beg);
     }
 
@@ -62,18 +71,24 @@ public:
 
 };
 
-using nonblocking_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::nonblocking>>;
-using blocking_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::blocking>>;
+// broadcast
+//
+using nonblocking_binomial_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::nonblocking>>;
+using blocking_binomial_broadcast = upcxx::utils::collectives::scalar_collective<upcxx::utils::collectives::broadcast<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::blocking>>;
 
 using nonblocking_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::nonblocking>>;
 using blocking_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::blocking>>;
 
+// gather
+//
 using nonblocking_binary_gather = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::gather<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::nonblocking>>;
 using blocking_binary_gather = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::gather<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::blocking>>;
 
 using nonblocking_binomial_gather = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::gather<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::nonblocking>>;
 using blocking_binomial_gather = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::gather<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::blocking>>;
 
+// reduce
+//
 using nonblocking_binary_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::nonblocking>>;
 using blocking_binary_reduce = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::reduce<upcxx::utils::collectives::tree_binary, upcxx::utils::collectives::blocking>>;
 

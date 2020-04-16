@@ -18,7 +18,7 @@ public:
     using communication_pattern = CommunicationPattern;
     using blocking_policy = BlockingPolicy;
 
-    reduce(const std::int64_t root_);
+    reduce(const std::int64_t root_=0);
 
     template<typename InputIterator, typename BinaryOp>
     void operator()(InputIterator input_beg, InputIterator input_end, typename std::iterator_traits<InputIterator>::value_type init, BinaryOp op, typename std::iterator_traits<InputIterator>::value_type & output);
