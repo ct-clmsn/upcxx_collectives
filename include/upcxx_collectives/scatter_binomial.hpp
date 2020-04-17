@@ -98,7 +98,7 @@ public:
             );
 
         std::int64_t rank_n = upcxx::rank_n();
-        std::int64_t rank_me = upcxx::rank_me();
+        const std::int64_t rank_me = ((upcxx::rank_me() - root) + rank_n) % rank_n;
         std::int64_t k = rank_n / 2;
         bool not_recieved = true;
 
@@ -106,6 +106,7 @@ public:
 
             const auto twok = 2 * k;
             if( (rank_me % twok) == 0 ) {
+
                 std::stringstream value_buffer{};
                 if(std::get<1>(*args).size() < 1) {
 
