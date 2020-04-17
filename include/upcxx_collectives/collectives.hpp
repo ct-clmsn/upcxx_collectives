@@ -12,6 +12,7 @@
 #include "broadcast_binomial.hpp"
 #include "broadcast_binary.hpp"
 #include "scatter.hpp"
+#include "scatter_binomial.hpp"
 #include "gather.hpp"
 #include "gather_binary.hpp"
 #include "gather_binomial.hpp"
@@ -82,8 +83,8 @@ using blocking_binary_broadcast = upcxx::utils::collectives::scalar_collective<u
 
 // scatter
 //
-using nonblocking_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::nonblocking>>;
-using blocking_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::blocking>>;
+using nonblocking_binomial_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::nonblocking>>;
+using blocking_binomial_scatter = upcxx::utils::collectives::iterable_collective<upcxx::utils::collectives::scatter<upcxx::utils::collectives::tree_binomial, upcxx::utils::collectives::blocking>>;
 
 // gather
 //
