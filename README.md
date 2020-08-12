@@ -36,24 +36,54 @@ Boost Software License
 
 #### Notes
 
-The implementations specifically targets log2 nodes and data set sizes. Any C++
-container type providing iterator support can be used with this library.
+The implementations specifically targets log2 nodes and data set sizes.
+Any C++ container type providing iterator support can be used with this
+library.
+
+The implementation depends on using the following datatype to control
+communications:
+
+~~~
+upcxx::dist_object< std::tuple< std::int32_t , std::string > > args;
+~~~
+
+args is exposed to the global address space. std::get<0>(args) returns
+a std::int32_t that is used as a mutex for a spinlock. The spinlock
+code looks like this:
+
+~~~
+upcxx::progress();
+while(!atomic_xchange( &std::get<0>(*args), 1, 0 )) {
+    upcxx::progress();
+}
+~~~
+
+the calls to upcxx::progress() clear the active message queues and allow
+asynchronous functions to execute. std::get<1>(args) returns the data
+buffer associated with the mutex.
+
+The data buffer is a std::string which is stored in the globally
+addressable tuple. The data buffer contains serialized data structures
+that are 'shipped' along the network with an active message that fills
+the buffer and flips the mutex.
 
 Data types should be compatible with Boost or STE||AR HPX Serialization
 requirements.
 
-Users can select which PE is the 'root' process for communication ('root' process
-for the tree communication does not have to be `rank 0`).
+Users can select which PE is the 'root' process for communication ('root'
+process for the tree communication does not have to be `rank 0`).
 
-To use the library, create a 'communicator pattern' on each PE, set the root level rank
-for communication when you create the 'communicator pattern', and you should be all set.
+To use the library, create a 'communicator pattern' on each PE, set the
+root level rank for communication when you create the 'communicator pattern',
+and you should be all set.
 
-To install, recursively copy the `./include/upcxx_collectives` into your project
-or your system installation path, usually this is some place like `../include/`.
+To install, recursively copy the `./include/upcxx_collectives` into your
+project or your system installation path, usually this is some place like
+`../include/`.
 
-To compile, read the examples directory for guidance. Switching between serializers
-is as simple as uncommenting the HPX block and commenting the BOOST block in the
-makefile.
+To compile, read the examples directory for guidance. Switching between
+serializers is as simple as uncommenting the HPX block and commenting the
+BOOST block in the makefile.
 
 ### TODO
 * All2All
