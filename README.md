@@ -45,6 +45,9 @@ requirements.
 Users can select which PE is the 'root' process for communication ('root' process
 for the tree communication does not have to be `rank 0`).
 
+To use the library, create a 'communicator pattern' on each PE, set the root level rank
+for communication when you create the 'communicator pattern', and you should be all set.
+
 To install, recursively copy the `./include/upcxx_collectives` into your project
 or your system installation path, usually this is some place like `../include/`.
 
