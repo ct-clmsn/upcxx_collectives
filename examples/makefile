@@ -5,6 +5,8 @@
 #
 INSTALL_ROOT=$(HOME)/git/install
 
+UPCXX_COLLECTIVES_INC_DIR=$(PWD)/../include
+
 BOOST_INSTALL_ROOT=$(INSTALL_ROOT)
 BOOST_INC_DIR=$(BOOST_INSTALL_ROOT)/include
 BOOST_LIB_DIR=$(BOOST_INSTALL_ROOT)/lib
@@ -27,7 +29,7 @@ LIBS=$(BOOST_LIB)
 #INC_DIR=$(HPX_INC_DIR)
 #LIBS=$(HPX_LIB)
 
-CFLAGS=-codemode=O3 -network=smp -threadmode=par -std=c++17 -DNDEBUG $(SERIALIZER) -mavx
+CFLAGS=-codemode=O3 -network=smp -threadmode=par -std=c++17 -DNDEBUG $(SERIALIZER) -mavx -I$(UPCXX_COLLECTIVES_INC_DIR)
 
 all:
 	$(CC) test.cpp $(CFLAGS) -o test -I$(INC_DIR) -L$(LIB_DIR) $(LIBS)

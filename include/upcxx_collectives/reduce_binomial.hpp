@@ -66,7 +66,7 @@ public:
             );
 
         const std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = (upcxx::rank_me() - root_) % upcxx::rank_n();
+        const std::int64_t rank_me = (upcxx::rank_me() - root) % upcxx::rank_n();
 
         value_type local_result{std::reduce(input_beg, input_end, init, op)};
 

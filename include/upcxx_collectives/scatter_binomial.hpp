@@ -61,7 +61,7 @@ public:
             );
 
         std::int64_t rank_n = upcxx::rank_n();
-        std::int64_t rank_me = (upcxx::rank_me() - root_) % upcxx::rank_n();
+        std::int64_t rank_me = (upcxx::rank_me() - root) % upcxx::rank_n();
         std::int64_t k = rank_n / 2;
         bool not_recieved = true;
 

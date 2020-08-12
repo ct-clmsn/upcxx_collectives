@@ -9,7 +9,7 @@
 //#include <execution>
 
 #include <upcxx/upcxx.hpp>
-#include "collectives.hpp"
+#include "upcxx_collectives/collectives.hpp"
 
 int main() {
     upcxx::init();
