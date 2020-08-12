@@ -59,13 +59,13 @@ while(!atomic_xchange( &std::get<0>(*args), 1, 0 )) {
 ~~~
 
 the calls to upcxx::progress() clear the active message queues and allow
-asynchronous functions to execute. std::get<1>(args) returns the data
-buffer associated with the mutex.
+remotely invoked asynchronous functions to execute. std::get<1>(args)
+returns the communication data buffer associated with the mutex.
 
-The data buffer is a std::string which is stored in the globally
-addressable tuple. The data buffer contains serialized data structures
-that are 'shipped' along the network with an active message that fills
-the buffer and flips the mutex.
+The communication data buffer is a std::string which is stored in the
+globally addressable tuple. The data buffer contains serialized data
+structures that are 'shipped' across the network with a remotely invoked
+active message that fills the buffer and flips the mutex.
 
 Data types should be compatible with Boost or STE||AR HPX Serialization
 requirements.
