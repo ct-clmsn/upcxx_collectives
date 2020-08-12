@@ -69,7 +69,7 @@ public:
             );
 
         std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = (upcxx::rank_me() - root) % upcxx::rank_n();
+        const std::int64_t rank_me = (upcxx::rank_me() + root) % upcxx::rank_n();
 
         // i.am.root.
         if(rank_me == 0) {

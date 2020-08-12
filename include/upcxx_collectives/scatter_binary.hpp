@@ -46,7 +46,7 @@ public:
         right(0),
         args{std::make_tuple(0, std::vector<std::string>{})} {
 
-        rel_rank = (upcxx::rank_me()-root_) % upcxx::rank_n();
+        rel_rank = (upcxx::rank_me()+root_) % upcxx::rank_n();
         left = (2*rel_rank) + 1;
         right = (2*rel_rank) + 2;
         cas_count = ( left < upcxx::rank_n() ) + ( right < upcxx::rank_n() );
