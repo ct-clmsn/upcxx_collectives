@@ -28,7 +28,6 @@ LIBS=$(BOOST_LIB)
 #LIBS=$(HPX_LIB)
 
 CFLAGS=-codemode=O3 -network=smp -threadmode=par -std=c++17 -DNDEBUG $(SERIALIZER) -mavx
-#-static
 
 all:
 	$(CC) test.cpp $(CFLAGS) -o test -I$(INC_DIR) -L$(LIB_DIR) $(LIBS)
