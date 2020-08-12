@@ -11,7 +11,7 @@
 
 namespace upcxx { namespace utils { namespace collectives {
 
-template< typename CommunicationPattern, typename BlockingPolicy >
+template< typename CommunicationPattern, typename BlockingPolicy, typename Serialization >
 class gather {
 public:
     using communication_pattern = CommunicationPattern;

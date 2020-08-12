@@ -15,29 +15,22 @@
 #include <iterator>
 #include <unistd.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+//#include <boost/archive/binary_oarchive.hpp>
+//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
 #include "reduce.hpp"
+#include "serialization.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 
-#if defined(__CLANG_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#elif defined(__GNUC_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_bool_compare_and_swap( object, object_value, value)
-#elif __has_builtin(__sync_swap)
-/* Clang provides a full-barrier atomic exchange - use it if available. */
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#endif
+template< typename BlockingPolicy, typename Serialization >
+class reduce<tree_binomial, BlockingPolicy, Serialization> {
 
-template< typename BlockingPolicy >
-class reduce<tree_binomial, BlockingPolicy> {
+    using value_type_t = typename Serialization::value_type;
+    using serializer_t = typename Serialization::serializer;
+    using deserializer_t = typename Serialization::deserializer;
 
 private:
     std::int64_t root;
@@ -58,7 +51,7 @@ public:
     void operator()(InputIterator input_beg, InputIterator input_end, typename std::iterator_traits<InputIterator>::value_type init, BinaryOp op, typename std::iterator_traits<InputIterator>::value_type & output) {
         // https://en.cppreference.com/w/cpp/header/iterator
         //
-        using value_type_t = typename std::iterator_traits<InputIterator>::value_type;
+        using value_type = typename std::iterator_traits<InputIterator>::value_type;
 
         const auto block_size = static_cast<std::int64_t>(input_end - input_beg) /
             static_cast<std::int64_t>(upcxx::rank_n());
@@ -73,9 +66,9 @@ public:
             );
 
         const std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = ((upcxx::rank_me() - root) + rank_n) % rank_n;
+        const std::int64_t rank_me = upcxx::rank_me();
 
-        value_type_t local_result{std::reduce(input_beg, input_end, init, op)};
+        value_type local_result{std::reduce(input_beg, input_end, init, op)};
 
         for(std::int64_t i = 0; i < logp; ++i) {
             if((mask & rank_me) == 0) {
@@ -92,9 +85,11 @@ public:
                         std::get<1>(*args).begin(), std::get<1>(*args).end(),
                         local_result, op,
                         [](auto & element) {
-                            value_type_t val{};
-                            std::stringstream value_buffer{element };
-                            boost::archive::binary_iarchive iarch{value_buffer};
+                            value_type val{};
+                            //std::stringstream value_buffer{element };
+                            //boost::archive::binary_iarchive iarch{value_buffer};
+                            value_type_t value_buffer{element };
+                            deserializer_t iarch{value_buffer};
                             iarch >> val;
                             return std::move(val);
                     });
@@ -109,8 +104,10 @@ public:
                 //
                 const std::int64_t parent = (rank_me & (~mask)); // % rank_n;
 
-                std::stringstream value_buffer{};
-                boost::archive::binary_oarchive value_oa{value_buffer};
+                //std::stringstream value_buffer{};
+                //boost::archive::binary_oarchive value_oa{value_buffer};
+                value_type_t value_buffer{};
+                serializer_t value_oa{value_buffer};
                 value_oa << local_result;
 
                 upcxx::rpc_ff(

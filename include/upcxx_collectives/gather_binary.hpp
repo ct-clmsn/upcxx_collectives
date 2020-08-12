@@ -13,29 +13,22 @@
 #include <iterator>
 #include <unistd.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+//#include <boost/archive/binary_oarchive.hpp>
+//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
 #include "gather.hpp"
+#include "serialization.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 
-#if defined(__CLANG_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#elif defined(__GNUC_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_bool_compare_and_swap( object, object_value, value)
-#elif __has_builtin(__sync_swap)
-/* Clang provides a full-barrier atomic exchange - use it if available. */
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#endif
+template<typename BlockingPolicy, typename Serialization >
+class gather<tree_binary, BlockingPolicy, Serialization> {
 
-template<typename BlockingPolicy >
-class gather<tree_binary, BlockingPolicy> {
+    using value_type_t = typename Serialization::value_type;
+    using serializer_t = typename Serialization::serializer;
+    using deserializer_t = typename Serialization::deserializer;
 
 private:
     std::int64_t root;
@@ -63,7 +56,7 @@ public:
     void operator()(InputIterator input_beg, InputIterator input_end, OutputIterator out_beg) {
         // https://en.cppreference.com/w/cpp/header/iterator
         //
-        using value_type_t = typename std::iterator_traits<InputIterator>::value_type;
+        using value_type = typename std::iterator_traits<InputIterator>::value_type;
 
         const auto block_size = static_cast<std::int64_t>(input_end - input_beg) /
             static_cast<std::int64_t>(upcxx::rank_n());
@@ -112,8 +105,10 @@ public:
 
             for(auto & recv_str : recv_str_vec) {
                 std::int64_t in_rank = 0, in_count = 0;
-                std::stringstream value_buffer{recv_str};
-                boost::archive::binary_iarchive iarch{value_buffer};
+                //std::stringstream value_buffer{recv_str};
+                //boost::archive::binary_iarchive iarch{value_buffer};
+                value_type_t value_buffer{recv_str};
+                deserializer_t iarch{value_buffer};
 
                 iarch >> in_rank >> in_count;
                 for(auto count = 0; count < in_count; ++count) {
@@ -131,8 +126,10 @@ public:
             const bool is_leaf = ( left >= rank_n ) && ( right >= rank_n );
             const bool is_even = (rank_me % 2) == 0;
 
-            std::stringstream value_buffer{};
-            boost::archive::binary_oarchive value_oa{value_buffer};
+            //std::stringstream value_buffer{};
+            //boost::archive::binary_oarchive value_oa{value_buffer};
+            value_type_t value_buffer{};
+            serializer_t value_oa{value_buffer};
             const std::int64_t iter_diff = (input_end-input_beg);
 
             value_oa << rank_me << iter_diff;
@@ -147,7 +144,7 @@ public:
                         [](upcxx::dist_object< std::tuple<std::int32_t, std::int32_t, std::vector<std::string>, std::vector<std::string>> > & args_, std::string data_) {
                             std::get<3>(*args_).push_back(data_);
                             atomic_xchange( &std::get<1>(*args_), 0, 1 );
-                        }, args, value_buffer.str()
+                        }, args, Serialization::get_buffer(value_buffer)
                     );
                 }
                 else {
@@ -156,7 +153,7 @@ public:
                         [](upcxx::dist_object< std::tuple<std::int32_t, std::int32_t, std::vector<std::string>, std::vector<std::string>> > & args_, std::string data_) {
                             std::get<2>(*args_).push_back(data_);
                             atomic_xchange( &std::get<0>(*args_), 0, 1 );
-                        }, args, value_buffer.str()
+                        }, args, Serialization::get_buffer(value_buffer)
                     );
                 }
             }

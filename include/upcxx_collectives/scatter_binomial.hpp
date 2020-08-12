@@ -4,75 +4,38 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#ifndef __UPCXX_SCATTER_HPP__
-#define __UPCXX_SCATTER_HPP__
+#ifndef __UPCXX_SCATTER_BINOMIAL_HPP__
+#define __UPCXX_SCATTER_BINOMIAL_HPP__
 
 #include <string>
 #include <sstream>
 #include <iterator>
 #include <unistd.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+//#include <boost/archive/binary_oarchive.hpp>
+//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
+#include "serialization.hpp"
 #include "scatter.hpp"
+#include "utils.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 
-#if defined(__CLANG_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#elif defined(__GNUC_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_bool_compare_and_swap( object, object_value, value)
-#elif __has_builtin(__sync_swap)
-/* Clang provides a full-barrier atomic exchange - use it if available. */
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#endif
+template< typename BlockingPolicy, typename Serialization >
+class scatter<tree_binomial, BlockingPolicy, Serialization> {
 
-template< typename CommunicationPattern, typename BlockingPolicy >
-class scatter {
+    using svalue_type_t = typename Serialization::value_type;
+    using serializer_t = typename Serialization::serializer;
+    using deserializer_t = typename Serialization::deserializer;
 
 private:
     std::int64_t root;
     upcxx::dist_object< std::tuple<std::int32_t, std::string> > args;
 
-    static inline bool compare_and_swap(volatile int * cond, int old_, int new_) {
-        if( (*cond) != old_ ) { return false; }
-        (*cond) = new_;
-        return true;
-    }
-
-    template <typename Type1, typename Type2>
-    static inline Type1 ipow(Type1 a, Type2 ex)
-    {
-        // Return a**ex
-        //
-        if ( 0==ex )  return 1;
-        else
-        {
-            Type1 z = a;
-            Type1 y = 1;
-            while ( 1 )
-            {
-                if ( ex & 1 )  y *= z;
-                ex /= 2;
-                if ( 0==ex )  break;
-                z *= z;
-            }
-            return y;
-        }
-    }
-
-    static inline int backoff(const int attempt, const int base, const int cap) {
-        return std::min(cap, ipow(base * 2, 2));
-    }
-
 public:
-    using communication_pattern = CommunicationPattern;
+    using communication_pattern = tree_binomial;
     using blocking_policy = BlockingPolicy;                                                                                                                                                                         
     scatter(const std::int64_t root_=0) :
         root(root_),
@@ -98,7 +61,7 @@ public:
             );
 
         std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = ((upcxx::rank_me() - root) + rank_n) % rank_n;
+        std::int64_t rank_me = upcxx::rank_me();
         std::int64_t k = rank_n / 2;
         bool not_recieved = true;
 
@@ -107,10 +70,22 @@ public:
             const auto twok = 2 * k;
             if( (rank_me % twok) == 0 ) {
 
-                std::stringstream value_buffer{};
+                //std::stringstream value_buffer{};
+                svalue_type_t value_buffer{};
                 if(std::get<1>(*args).size() < 1) {
 
-                    boost::archive::binary_oarchive value_oa{value_buffer};
+                    if(not_recieved) {
+                        not_recieved = false;
+
+                        auto cpy_itr = input_beg;
+                        for(std::int64_t i = 0; i < block_size; ++i) {
+                            (*out_beg++) = (*(input_beg+i));
+                            //out_beg++;
+                        }
+                    }
+
+                    //boost::archive::binary_oarchive value_oa{value_buffer};
+                    serializer_t value_oa{value_buffer};
 
                     const auto seg_beg = ((rank_me + k) % rank_n) * block_size;
                     const auto seg_end = ((rank_n - (rank_me % rank_n)) * block_size) + 1;
@@ -129,8 +104,12 @@ public:
 
                 }
                 else {
-                    value_buffer << std::get<1>(*args);
-                    //std::get<1>(*args).clear();
+                    if constexpr( serialization::is_boost<Serialization>::value ) {
+                        value_buffer << std::get<1>(*args);
+                    }
+                    else {
+                        value_buffer.append(std::get<1>(*args));
+                    }
                 }
 
                 upcxx::rpc_ff(
@@ -140,7 +119,7 @@ public:
                         std::get<1>(*args_).insert(0, data_);
 
                         atomic_xchange( &std::get<0>(*args_), 0, 1 );
-                    }, args, value_buffer.str()
+                    }, args, Serialization::get_buffer(value_buffer)
                 );
             }
             else if( not_recieved && ((rank_me % twok) == k) ) {
@@ -150,8 +129,10 @@ public:
                     upcxx::progress();
                 }
 
-                std::stringstream recv_buffer{std::get<1>(*args)};
-                boost::archive::binary_iarchive recv_ia{recv_buffer};
+                //std::stringstream recv_buffer{std::get<1>(*args)};
+                //boost::archive::binary_iarchive recv_ia{recv_buffer};
+                svalue_type_t recv_buffer{std::get<1>(*args)};
+                deserializer_t recv_ia{recv_buffer};
 
                 std::int64_t element_count = 0;
                 recv_ia >> element_count;

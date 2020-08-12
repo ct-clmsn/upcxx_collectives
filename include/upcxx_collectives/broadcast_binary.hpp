@@ -13,33 +13,26 @@
 #include <iterator>
 #include <unistd.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+//#include <boost/archive/binary_oarchive.hpp>
+//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
+#include "serialization.hpp"
 #include "broadcast.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 
-#if defined(__CLANG_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#elif defined(__GNUC_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_bool_compare_and_swap( object, object_value, value)
-#elif __has_builtin(__sync_swap)
-/* Clang provides a full-barrier atomic exchange - use it if available. */
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#endif
+template<typename BlockingPolicy, typename Serialization >
+class broadcast<tree_binary, BlockingPolicy, Serialization> {
 
-template<typename BlockingPolicy >
-class broadcast<tree_binary, BlockingPolicy> {
+    using value_type_t = typename Serialization::value_type;
+    using serializer_t = typename Serialization::serializer;
+    using deserializer_t = typename Serialization::deserializer;
 
 private:
     std::int64_t root, cas_count, rel_rank, left, right;
-    upcxx::dist_object< std::tuple< std::int32_t, std::string > > args;
+    upcxx::dist_object< std::tuple< std::int32_t , std::string > > args;
 
 public:
     using communication_pattern = upcxx::utils::collectives::tree_binary;
@@ -53,7 +46,7 @@ public:
         right(0),
         args{std::make_tuple(0, std::string{})} {
 
-        rel_rank = ((upcxx::rank_me()-root_) + upcxx::rank_n()) % upcxx::rank_n();
+        rel_rank = (upcxx::rank_me() - root_) % upcxx::rank_n();
         left = (2*rel_rank) + 1;
         right = (2*rel_rank) + 2;
         cas_count = ( left < upcxx::rank_n() ) + ( right < upcxx::rank_n() );
@@ -70,27 +63,27 @@ public:
         // i.am.root.
         if(rank_me == 0) {
 
-            std::stringstream value_buffer{};
-            boost::archive::binary_oarchive value_oa{value_buffer};
-
-            value_oa << rank_me << data;
+            value_type_t value_buffer{};
+            serializer_t value_oa = Serialization::make_serializer(value_buffer);
 
             if(post_lleaf) {
                 upcxx::rpc_ff(
                     left,
                     [](upcxx::dist_object< std::tuple<std::int32_t, std::string> > & args_, std::string data_) {
-                        std::get<1>(*args_) = data_; //.insert(0, data_.begin(), data_.end());
+                        std::get<1>(*args_).resize(data_.size());
+                        std::get<1>(*args_).insert(0, data_);
                         atomic_xchange( &std::get<0>(*args_), 0, 1 );
-                    }, args, value_buffer.str()
+                    }, args, Serialization::get_buffer(value_buffer)
                 );
             }
             if(post_rleaf) {
                 upcxx::rpc_ff(
                     right,
                     [](upcxx::dist_object< std::tuple<std::int32_t, std::string> > & args_, std::string data_) {
-                        std::get<1>(*args_) = data_; //.insert(0, data_.begin(), data_.end());
+                        std::get<1>(*args_).resize(data_.size());
+                        std::get<1>(*args_).insert(0, data_);
                         atomic_xchange( &std::get<0>(*args_), 0, 1 );
-                    }, args, value_buffer.str()
+                    }, args, Serialization::get_buffer(value_buffer)
                 );
             }
         }
@@ -105,7 +98,8 @@ public:
                 upcxx::rpc_ff(
                     left,
                     [](upcxx::dist_object< std::tuple<std::int32_t, std::string> > & args_, std::string data_) {
-                        std::get<1>(*args_) = data_; //.insert(0, data_.begin(), data_.end());
+                        std::get<1>(*args_).resize(data_.size());
+                        std::get<1>(*args_).insert(0, data_);
                         atomic_xchange( &std::get<0>(*args_), 0, 1 );
                     }, args, std::get<1>(*args)
                 );
@@ -114,14 +108,15 @@ public:
                 upcxx::rpc_ff(
                     right,
                     [](upcxx::dist_object< std::tuple<std::int32_t, std::string> > & args_, std::string data_) {
-                        std::get<1>(*args_) = data_; //.insert(0, data_.begin(), data_.end());
+                        std::get<1>(*args_).resize(data_.size());
+                        std::get<1>(*args_).insert(0, data_);
                         atomic_xchange( &std::get<0>(*args_), 0, 1 );
                     }, args, std::get<1>(*args)
                 );
             }
 
-            std::stringstream value_buffer{std::get<1>(*args)};
-            boost::archive::binary_iarchive value_ia{value_buffer};
+            value_type_t value_buffer{std::get<1>(*args)};
+            deserializer_t value_ia = Serialization::make_serializer(value_buffer);
 
             std::int64_t recv_rank = 0;
             value_ia >> recv_rank >> data;

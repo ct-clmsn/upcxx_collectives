@@ -22,20 +22,12 @@
 
 namespace upcxx { namespace utils { namespace collectives {
 
-#if defined(__CLANG_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#elif defined(__GNUC_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_bool_compare_and_swap( object, object_value, value)
-#elif __has_builtin(__sync_swap)
-/* Clang provides a full-barrier atomic exchange - use it if available. */
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#endif
+template< typename BlockingPolicy, typename Serialization >
+class gather< tree_binomial, BlockingPolicy, Serialization > {
 
-template< typename BlockingPolicy >
-class gather< tree_binomial, BlockingPolicy > {
+    using value_type_t = typename Serialization::value_type;
+    using serializer_t = typename Serialization::serializer;
+    using deserializer_t = typename Serialization::deserializer;
 
 private:
     std::int64_t root;
@@ -56,7 +48,7 @@ public:
     void operator()(InputIterator input_beg, InputIterator input_end, OutputIterator out_beg) {
         // https://en.cppreference.com/w/cpp/header/iterator
         //
-        using value_type_t = typename std::iterator_traits<InputIterator>::value_type;
+        using value_type = typename std::iterator_traits<InputIterator>::value_type;
 
         const auto block_size = static_cast<std::int64_t>(input_end - input_beg) /
             static_cast<std::int64_t>(upcxx::rank_n());
@@ -75,8 +67,11 @@ public:
 
         // cache local data set into transmission buffer
         if(rank_me != root) {
-            std::stringstream value_buffer{};
-            boost::archive::binary_oarchive value_oa{value_buffer};
+            //std::stringstream value_buffer{};
+            //boost::archive::binary_oarchive value_oa{value_buffer};
+            value_type_t value_buffer{};
+            serializer_t value_oa{value_buffer};
+
             const std::int64_t iter_diff = (input_end-input_beg);
 
             value_oa << rank_me << iter_diff;
@@ -84,7 +79,7 @@ public:
                 value_oa << (*seg_itr);
             }
 
-            std::get<1>(*args).push_back(value_buffer.str());
+            std::get<1>(*args).push_back(Serialization::get_buffer(value_buffer));
         }
 
         for(std::int64_t i = 0; i < logp; ++i) {
@@ -125,8 +120,10 @@ public:
         if(rank_me < 1) {
             for(auto & recv_str : std::get<1>(*args)) {
                 std::int64_t in_rank = 0, in_count = 0;
-                std::stringstream value_buffer{recv_str};
-                boost::archive::binary_iarchive iarch{value_buffer};
+                //std::stringstream value_buffer{recv_str};
+                //boost::archive::binary_iarchive iarch{value_buffer};
+                value_type_t value_buffer{recv_str};
+                deserializer_t iarch{value_buffer};
 
                 iarch >> in_rank >> in_count;
                 for(auto count = 0; count < in_count; ++count) {

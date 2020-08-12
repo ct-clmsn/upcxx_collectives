@@ -14,29 +14,22 @@
 #include <numeric>
 #include <unistd.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+//#include <boost/archive/binary_oarchive.hpp>
+//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
 #include "reduce.hpp"
+#include "serialization.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 
-#if defined(__CLANG_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#elif defined(__GNUC_ATOMICS)
-#define atomic_xchange(object, object_value, value) \
-    __sync_bool_compare_and_swap( object, object_value, value)
-#elif __has_builtin(__sync_swap)
-/* Clang provides a full-barrier atomic exchange - use it if available. */
-#define atomic_xchange(object, object_value, value) \
-    __sync_swap(object, value)
-#endif
+template< typename BlockingPolicy, typename Serialization >
+class reduce<tree_binary, BlockingPolicy, Serialization > {
 
-template< typename BlockingPolicy >
-class reduce<tree_binary, BlockingPolicy> {
+    using value_type_t = typename Serialization::value_type;
+    using serializer_t = typename Serialization::serializer;
+    using deserializer_t = typename Serialization::deserializer;
 
 private:
     std::int64_t root;
@@ -61,7 +54,7 @@ public:
     void operator()(InputIterator input_beg, InputIterator input_end, typename std::iterator_traits<InputIterator>::value_type init, BinaryOp op, typename std::iterator_traits<InputIterator>::value_type & output) {
         // https://en.cppreference.com/w/cpp/header/iterator
         //
-        using value_type_t = typename std::iterator_traits<InputIterator>::value_type;
+        using value_type = typename std::iterator_traits<InputIterator>::value_type;
 
         const auto block_size = static_cast<std::int64_t>(input_end - input_beg) /
             static_cast<std::int64_t>(upcxx::rank_n());
@@ -76,7 +69,7 @@ public:
             );
 
         std::int64_t rank_n = upcxx::rank_n();
-        const std::int64_t rank_me = ((upcxx::rank_me() - root) + rank_n) % rank_n;
+        const std::int64_t rank_me = upcxx::rank_me();
 
         // i.am.root.
         if(rank_me == 0) {
@@ -92,19 +85,23 @@ public:
                     upcxx::progress();
                 }
 
-                std::vector<value_type_t> recv_vec{};
+                std::vector<value_type> recv_vec{};
                 {
-                    value_type_t odd{};
-                    std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                    boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                    value_type odd{};
+                    //std::stringstream value_buffer_odd{ std::get<2>(*args) };
+                    //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                    value_type_t value_buffer_odd{ std::get<2>(*args) };
+                    deserializer_t iarch_odd{value_buffer_odd};
                     iarch_odd >> odd;
                     recv_vec.push_back(std::move(odd));
                 }
 
                 {
-                    value_type_t even{};
-                    std::stringstream value_buffer_even{ std::get<3>(*args) };
-                    boost::archive::binary_iarchive iarch_even{value_buffer_even};
+                    value_type even{};
+                    //std::stringstream value_buffer_even{ std::get<3>(*args) };
+                    //boost::archive::binary_iarchive iarch_even{value_buffer_even};
+                    value_type_t value_buffer_even{ std::get<3>(*args) };
+                    deserializer_t iarch_even{value_buffer_even};
                     iarch_even >> even;
                     recv_vec.push_back(std::move(even));
                 }
@@ -118,9 +115,11 @@ public:
                     upcxx::progress();
                 }
 
-                value_type_t val{};
-                std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                value_type val{};
+                //std::stringstream value_buffer_odd{ std::get<2>(*args) };
+                //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                value_type_t value_buffer_odd{ std::get<2>(*args) };
+                deserializer_t iarch_odd{value_buffer_odd};
 
                 iarch_odd >> val;
                 output = val;
@@ -134,10 +133,12 @@ public:
             const bool is_leaf = ( left >= rank_n ) && ( right >= rank_n );
             const bool is_even = (rank_me % 2) == 0;
 
-            std::stringstream value_buffer{};
-            boost::archive::binary_oarchive value_oa{value_buffer};
+            //std::stringstream value_buffer{};
+            //boost::archive::binary_oarchive value_oa{value_buffer};
+            value_type_t value_buffer{};
+            serializer_t value_oa{value_buffer};
 
-            const value_type_t result_local = std::reduce(input_beg, input_end, init, op);
+            const value_type result_local = std::reduce(input_beg, input_end, init, op);
 
             if(is_leaf) {
                 if(is_even) {
@@ -147,7 +148,7 @@ public:
                         [](upcxx::dist_object< std::tuple<std::int32_t, std::int32_t, std::string, std::string> > & args_, std::string data_) {
                             std::get<3>(*args_).append(data_);
                             atomic_xchange( &std::get<1>(*args_), 0, 1 );
-                        }, args, value_buffer.str()
+                        }, args, Serialization::get_buffer(value_buffer)
                     );
                 }
                 else {
@@ -157,7 +158,7 @@ public:
                         [](upcxx::dist_object< std::tuple<std::int32_t, std::int32_t, std::string, std::string> > & args_, std::string data_) {
                             std::get<2>(*args_).append(data_);
                             atomic_xchange( &std::get<0>(*args_), 0, 1 );
-                        }, args, value_buffer.str()
+                        }, args, Serialization::get_buffer(value_buffer)
                     );
                 }
             }
@@ -174,24 +175,28 @@ public:
                         upcxx::progress();
                     }
 
-                    std::vector<value_type_t> recv_vec{};
+                    std::vector<value_type> recv_vec{};
                     {
-                        value_type_t odd{};
-                        std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                        boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                        value_type odd{};
+                        //std::stringstream value_buffer_odd{ std::get<2>(*args) };
+                        //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                        value_type_t value_buffer_odd{ std::get<2>(*args) };
+                        deserializer_t iarch_odd{value_buffer_odd};
                         iarch_odd >> odd;
                         recv_vec.push_back(std::move(odd));
                     }
 
                     {
-                        value_type_t even{};
-                        std::stringstream value_buffer_even{ std::get<3>(*args) };
-                        boost::archive::binary_iarchive iarch_even{value_buffer_even};
+                        value_type even{};
+                        //std::stringstream value_buffer_even{ std::get<3>(*args) };
+                        //boost::archive::binary_iarchive iarch_even{value_buffer_even};
+                        value_type_t value_buffer_even{ std::get<3>(*args) };
+                        deserializer_t iarch_even{value_buffer_even};
                         iarch_even >> even;
                         recv_vec.push_back(std::move(even));
                     }
 
-                    value_type_t result_join = std::reduce(recv_vec.begin(), recv_vec.end(), result_local, op); 
+                    value_type result_join = std::reduce(recv_vec.begin(), recv_vec.end(), result_local, op); 
                     value_oa << result_join;
                 }
                 else {
@@ -200,15 +205,17 @@ public:
                         upcxx::progress();
                     }
 
-                    value_type_t odd{};
+                    value_type odd{};
 
                     {
-                        std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                        boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                        //std::stringstream value_buffer_odd{ std::get<2>(*args) };
+                        //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
+                        value_type_t value_buffer_odd{ std::get<2>(*args) };
+                        deserializer_t iarch_odd{value_buffer_odd};
                         iarch_odd >> odd;
                     }
 
-                    value_type_t result_join = op(result_local, odd);
+                    value_type result_join = op(result_local, odd);
                     value_oa << result_join;
                 }
 
@@ -218,7 +225,7 @@ public:
                         [](upcxx::dist_object< std::tuple<std::int32_t, std::int32_t, std::string, std::string> > & args_, std::string data_) {
                             std::get<3>(*args_).append(data_);
                             atomic_xchange( &std::get<1>(*args_), 0, 1 );
-                        }, args, value_buffer.str()
+                        }, args, Serialization::get_buffer(value_buffer)
                     );
                 }
                 else {
@@ -227,7 +234,7 @@ public:
                         [](upcxx::dist_object< std::tuple<std::int32_t, std::int32_t, std::string, std::string> > & args_, std::string data_) {
                             std::get<2>(*args_).append(data_);
                             atomic_xchange( &std::get<0>(*args_), 0, 1 );
-                        }, args, value_buffer.str()
+                        }, args, Serialization::get_buffer(value_buffer)
                     );
                 }
             } // leaf/non-leaf end
