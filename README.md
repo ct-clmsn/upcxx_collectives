@@ -3,7 +3,7 @@
 <!--   Distributed under the Boost Software License, Version 1.0. (See accompanying -->
 <!--   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)        -->
 
-# UPC++ Collectives: Collective Communication Primitives for UPC++
+# Collective Communication Primitives for UPC++
 
 Project details [here](http://www.github.com/ct-clmsn/upcxx_collectives/).
 
