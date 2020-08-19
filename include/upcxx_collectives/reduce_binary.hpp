@@ -14,8 +14,6 @@
 #include <numeric>
 #include <unistd.h>
 
-//#include <boost/archive/binary_oarchive.hpp>
-//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
@@ -88,8 +86,6 @@ public:
                 std::vector<value_type> recv_vec{};
                 {
                     value_type odd{};
-                    //std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                    //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
                     value_type_t value_buffer_odd{ std::get<2>(*args) };
                     deserializer_t iarch_odd{value_buffer_odd};
                     iarch_odd >> odd;
@@ -98,8 +94,6 @@ public:
 
                 {
                     value_type even{};
-                    //std::stringstream value_buffer_even{ std::get<3>(*args) };
-                    //boost::archive::binary_iarchive iarch_even{value_buffer_even};
                     value_type_t value_buffer_even{ std::get<3>(*args) };
                     deserializer_t iarch_even{value_buffer_even};
                     iarch_even >> even;
@@ -116,8 +110,6 @@ public:
                 }
 
                 value_type val{};
-                //std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
                 value_type_t value_buffer_odd{ std::get<2>(*args) };
                 deserializer_t iarch_odd{value_buffer_odd};
 
@@ -133,8 +125,6 @@ public:
             const bool is_leaf = ( left >= rank_n ) && ( right >= rank_n );
             const bool is_even = (rank_me % 2) == 0;
 
-            //std::stringstream value_buffer{};
-            //boost::archive::binary_oarchive value_oa{value_buffer};
             value_type_t value_buffer{};
             serializer_t value_oa{value_buffer};
 
@@ -178,8 +168,6 @@ public:
                     std::vector<value_type> recv_vec{};
                     {
                         value_type odd{};
-                        //std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                        //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
                         value_type_t value_buffer_odd{ std::get<2>(*args) };
                         deserializer_t iarch_odd{value_buffer_odd};
                         iarch_odd >> odd;
@@ -188,8 +176,6 @@ public:
 
                     {
                         value_type even{};
-                        //std::stringstream value_buffer_even{ std::get<3>(*args) };
-                        //boost::archive::binary_iarchive iarch_even{value_buffer_even};
                         value_type_t value_buffer_even{ std::get<3>(*args) };
                         deserializer_t iarch_even{value_buffer_even};
                         iarch_even >> even;
@@ -208,8 +194,6 @@ public:
                     value_type odd{};
 
                     {
-                        //std::stringstream value_buffer_odd{ std::get<2>(*args) };
-                        //boost::archive::binary_iarchive iarch_odd{value_buffer_odd};
                         value_type_t value_buffer_odd{ std::get<2>(*args) };
                         deserializer_t iarch_odd{value_buffer_odd};
                         iarch_odd >> odd;

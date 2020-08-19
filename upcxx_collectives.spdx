@@ -1,6 +1,6 @@
 SPDXVersion: SPDX-2.1
 DataLicense: CC0-1.0
 PackageName: upcxx_collectives
-PackageOriginator: ct-clmsn
+PackageOriginator: Christopher Taylor 
 PackageHomePage: https://github.com/ct-clmsn/upcxx_collectives
 PackageLicenseDeclared: BSL-1.0

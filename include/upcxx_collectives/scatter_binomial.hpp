@@ -12,8 +12,6 @@
 #include <iterator>
 #include <unistd.h>
 
-//#include <boost/archive/binary_oarchive.hpp>
-//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
@@ -70,7 +68,6 @@ public:
             const auto twok = 2 * k;
             if( (rank_me % twok) == 0 ) {
 
-                //std::stringstream value_buffer{};
                 svalue_type_t value_buffer{};
                 if(std::get<1>(*args).size() < 1) {
 
@@ -80,11 +77,9 @@ public:
                         auto cpy_itr = input_beg;
                         for(std::int64_t i = 0; i < block_size; ++i) {
                             (*out_beg++) = (*(input_beg+i));
-                            //out_beg++;
                         }
                     }
 
-                    //boost::archive::binary_oarchive value_oa{value_buffer};
                     serializer_t value_oa{value_buffer};
 
                     const auto seg_beg = ((rank_me + k) % rank_n) * block_size;
@@ -129,8 +124,6 @@ public:
                     upcxx::progress();
                 }
 
-                //std::stringstream recv_buffer{std::get<1>(*args)};
-                //boost::archive::binary_iarchive recv_ia{recv_buffer};
                 svalue_type_t recv_buffer{std::get<1>(*args)};
                 deserializer_t recv_ia{recv_buffer};
 

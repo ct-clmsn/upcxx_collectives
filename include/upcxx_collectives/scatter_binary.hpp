@@ -15,12 +15,11 @@
 #include <vector>
 #include <unistd.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
 #include "scatter.hpp"
+#include "serialization.hpp"
 
 namespace upcxx { namespace utils { namespace collectives {
 

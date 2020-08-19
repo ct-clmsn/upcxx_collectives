@@ -15,8 +15,6 @@
 #include <iterator>
 #include <unistd.h>
 
-//#include <boost/archive/binary_oarchive.hpp>
-//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
@@ -86,8 +84,6 @@ public:
                         local_result, op,
                         [](auto & element) {
                             value_type val{};
-                            //std::stringstream value_buffer{element };
-                            //boost::archive::binary_iarchive iarch{value_buffer};
                             value_type_t value_buffer{element };
                             deserializer_t iarch{value_buffer};
                             iarch >> val;
@@ -104,8 +100,6 @@ public:
                 //
                 const std::int64_t parent = (rank_me & (~mask)); // % rank_n;
 
-                //std::stringstream value_buffer{};
-                //boost::archive::binary_oarchive value_oa{value_buffer};
                 value_type_t value_buffer{};
                 serializer_t value_oa{value_buffer};
                 value_oa << local_result;

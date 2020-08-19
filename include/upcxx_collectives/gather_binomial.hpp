@@ -67,8 +67,6 @@ public:
 
         // cache local data set into transmission buffer
         if(rank_me != root) {
-            //std::stringstream value_buffer{};
-            //boost::archive::binary_oarchive value_oa{value_buffer};
             value_type_t value_buffer{};
             serializer_t value_oa{value_buffer};
 
@@ -120,8 +118,6 @@ public:
         if(rank_me < 1) {
             for(auto & recv_str : std::get<1>(*args)) {
                 std::int64_t in_rank = 0, in_count = 0;
-                //std::stringstream value_buffer{recv_str};
-                //boost::archive::binary_iarchive iarch{value_buffer};
                 value_type_t value_buffer{recv_str};
                 deserializer_t iarch{value_buffer};
 

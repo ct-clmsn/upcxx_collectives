@@ -11,8 +11,6 @@
 #include <string>
 #include <sstream>
 
-//#include <boost/archive/binary_oarchive.hpp>
-//#include <boost/archive/binary_iarchive.hpp>
 #include <upcxx/upcxx.hpp>
 
 #include "collective_traits.hpp" 
@@ -20,7 +18,7 @@
 #include "broadcast.hpp"
 #include "utils.hpp"
 
-namespace upcxx { namespace utils { namespace collectives {
+namespace hpx { namespace utils { namespace collectives {
 
 template< typename BlockingPolicy, typename Serialization >
 class broadcast< tree_binomial, BlockingPolicy, Serialization > {
@@ -65,8 +63,6 @@ public:
             const auto twok = 2 * k;
             if( (rank_me % twok) == 0 ) {
 
-                //std::stringstream send_buffer{std::get<1>(*args)};
-                //boost::archive::binary_oarchive send_ia{send_buffer};
                 value_type_t send_buffer{std::get<1>(*args)};
                 serializer_t send_ia{send_buffer};
                 send_ia << data;
@@ -86,8 +82,6 @@ public:
                     upcxx::progress();
                 }
 
-                //std::stringstream recv_buffer{std::get<1>(*args)};
-                //boost::archive::binary_iarchive recv_ia{recv_buffer};
                 value_type_t recv_buffer{std::get<1>(*args)};
                 deserializer_t recv_ia{recv_buffer};
 
